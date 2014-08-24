@@ -1,5 +1,8 @@
 package com.nyver.bbclearningenglish;
 
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -10,19 +13,22 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.nyver.bbclearningenglish.helper.NetHelper;
 import com.nyver.bbclearningenglish.html.HtmlParser;
 import com.nyver.bbclearningenglish.html.exception.HtmlException;
-import com.nyver.bbclearningenglish.html.exception.LoadHtmlException;
 import com.nyver.bbclearningenglish.rss.RssReader;
 import com.nyver.bbclearningenglish.rss.SixMinuteRssStrategy;
 import com.nyver.bbclearningenglish.rss.adapter.RssItemAdapter;
 import com.nyver.bbclearningenglish.rss.model.RssItem;
 import com.nyver.bbclearningenglish.rss.task.LoadRssTask;
 
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -107,23 +113,45 @@ public class MainActivity extends ActionBarActivity {
                     HtmlParser parser = new HtmlParser(item.getLink());
                     try {
                         item.setAudioLink(parser.getAudioLink());
-                        Toast.makeText(getActivity(), item.getAudioLink(), Toast.LENGTH_LONG).show();
                     } catch (HtmlException e) {
                         e.printStackTrace();
                         Toast.makeText(getActivity(), String.format(getString(R.string.error_cant_load_or_parse), item.getLink()), Toast.LENGTH_LONG);
                     }
                 }
 
-                
+                if (null != item.getAudioLink() && !item.getAudioLink().isEmpty()) {
+                    Toast.makeText(getActivity(), item.getAudioLink(), Toast.LENGTH_LONG).show();
+
+                    Fragment fragment = ItemFragment.newInstance(item);
+                    FragmentTransaction transaction = getFragmentManager().beginTransaction();
+
+                    transaction.replace(R.id.container, fragment);
+                    transaction.addToBackStack(null);
+                    transaction.commit();
+                } else {
+                    Toast.makeText(getActivity(), R.string.error_couldnt_parse_an_audio_link_for_this_episode, Toast.LENGTH_LONG).show();
+                }
+
             }
         }
     }
 
     public static class ItemFragment extends Fragment {
 
-        private RssItem item;
+        public static final String INDEX_ITEM = "item";
 
-        public ItemFragment() {
+        private boolean initialState = true;
+
+        private RssItem item;
+        private MediaPlayer mediaPlayer;
+
+        public static ItemFragment newInstance(RssItem item) {
+            ItemFragment fragment = new ItemFragment();
+
+            Bundle args = new Bundle();
+            args.putSerializable(INDEX_ITEM, item);
+            fragment.setArguments(args);
+            return fragment;
         }
 
         @Override
@@ -131,7 +159,53 @@ public class MainActivity extends ActionBarActivity {
                                  Bundle savedInstanceState) {
 
             View rootView = inflater.inflate(R.layout.fragment_item, container, false);
+
+            Bundle bundle = getArguments();
+            item = (RssItem) bundle.get(INDEX_ITEM);
+
+            TextView title = (TextView) rootView.findViewById(R.id.itemTitle);
+            title.setText(item.getTitle());
+
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            try {
+                mediaPlayer.setDataSource(item.getAudioLink());
+                mediaPlayer.prepare();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            Button playButton = (Button) rootView.findViewById(R.id.playButton);
+            playButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (!mediaPlayer.isPlaying()) {
+                        mediaPlayer.start();
+                    }
+                }
+            });
+
+            Button stopButton = (Button) rootView.findViewById(R.id.stopButton);
+            stopButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (mediaPlayer.isPlaying()) {
+                        mediaPlayer.stop();
+                    }
+                }
+            });
+
             return rootView;
+        }
+
+        @Override
+        public void onStop() {
+            super.onStop();
+            if (null != mediaPlayer) {
+                mediaPlayer.reset();
+                mediaPlayer.release();
+                mediaPlayer = null;
+            }
         }
     }
 

@@ -1,8 +1,9 @@
 package com.nyver.bbclearningenglish.rss.model;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class RssItem {
+public class RssItem implements Serializable {
     private String title;
     private String summary;
     private String link;

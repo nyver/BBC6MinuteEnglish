@@ -7,5 +7,8 @@
     <string name="error_u_havent_internet_connection">You have no internet connection for retrieve the list of episodes</string>
     <string name="error_cant_connect_or_load_list">Can not connect to www.bbc.co.uk or load the list of episodes</string>
     <string name="error_cant_load_or_parse">Can not load or parse %s</string>
+    <string name="error_couldnt_parse_an_audio_link_for_this_episode">Could not parse an audio link for this episode</string>
+    <string name="play">Play</string>
+    <string name="stop">Stop</string>
 
 </resources>

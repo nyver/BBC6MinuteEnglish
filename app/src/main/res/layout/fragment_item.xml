@@ -14,4 +14,23 @@
         android:layout_height="wrap_content"
         android:text="Title"/>
 
+    <Button
+        android:id="@+id/playButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/play"
+        android:layout_below="@+id/itemTitle"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <Button
+        android:id="@+id/stopButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/stop"
+        android:layout_alignTop="@+id/playButton"
+        android:layout_toRightOf="@+id/playButton"
+        android:layout_toEndOf="@+id/playButton" />
+
+
 </RelativeLayout>
