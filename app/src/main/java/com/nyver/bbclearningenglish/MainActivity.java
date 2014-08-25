@@ -6,6 +6,7 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,6 +19,9 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.nyver.bbclearningenglish.db.DatabaseHelper;
+import com.nyver.bbclearningenglish.db.DatabaseHelperFactory;
+import com.nyver.bbclearningenglish.db.RssItemDAO;
 import com.nyver.bbclearningenglish.helper.NetHelper;
 import com.nyver.bbclearningenglish.html.HtmlParser;
 import com.nyver.bbclearningenglish.html.exception.HtmlException;
@@ -29,6 +33,7 @@ import com.nyver.bbclearningenglish.rss.task.LoadRssTask;
 
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -67,7 +72,12 @@ public class MainActivity extends ActionBarActivity {
 
     public static class MainFragment extends Fragment implements AdapterView.OnItemClickListener {
 
+        private static final String TAG = MainFragment.class.getSimpleName();
+
+
         private List<RssItem> items = new ArrayList<RssItem>();
+
+        private RssItemDAO rssItemDAO;
 
         public MainFragment() {
         }
@@ -76,10 +86,20 @@ public class MainActivity extends ActionBarActivity {
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
 
+            try {
+                rssItemDAO = DatabaseHelperFactory.getHelper().getRssItemDAO();
+                items = rssItemDAO.getAllItems();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                Log.e(TAG, "Error retrieving rss items from database");
+            }
+
             View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
             if (items.isEmpty()) {
                 items = loadItems();
+                saveItems();
+
             }
             ArrayAdapter<RssItem> listAdapter = new RssItemAdapter(getActivity(), R.layout.rss_item, items);
 
@@ -88,6 +108,21 @@ public class MainActivity extends ActionBarActivity {
             rssItemsListView.setOnItemClickListener(this);
 
             return rootView;
+        }
+
+        private void saveItems() {
+            try {
+                for(RssItem item: items) {
+                    if (item.getId() > 0) {
+                        rssItemDAO.update(item);
+                    } else {
+                        rssItemDAO.create(item);
+                    }
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                Log.e(TAG, "Error save rss items to database");
+            }
         }
 
         private List<RssItem> loadItems() {
@@ -113,9 +148,14 @@ public class MainActivity extends ActionBarActivity {
                     HtmlParser parser = new HtmlParser(item.getLink());
                     try {
                         item.setAudioLink(parser.getAudioLink());
+                        rssItemDAO.update(item);
                     } catch (HtmlException e) {
                         e.printStackTrace();
                         Toast.makeText(getActivity(), String.format(getString(R.string.error_cant_load_or_parse), item.getLink()), Toast.LENGTH_LONG);
+                        Log.e(TAG, String.format(getString(R.string.error_cant_load_or_parse), item.getLink()));
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        Log.e(TAG, "Error save rss item " + item.getTitle());
                     }
                 }
 
