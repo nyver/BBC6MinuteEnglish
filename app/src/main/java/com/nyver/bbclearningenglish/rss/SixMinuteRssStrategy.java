@@ -18,6 +18,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SixMinuteRssStrategy extends AbstractRssStrategy {
 
@@ -35,6 +37,8 @@ public class SixMinuteRssStrategy extends AbstractRssStrategy {
     private static final String TAG_LINK = "link";
 
     private static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZZZZZ", Locale.ENGLISH);
+
+    private static final Pattern titleCheckPattern = Pattern.compile("[0-9]{4} programmes");
 
     @Override
     public String getUrlString() {
@@ -66,13 +70,21 @@ public class SixMinuteRssStrategy extends AbstractRssStrategy {
             String name = parser.getName();
             // Starts by looking for the entry tag
             if (name.equals(TAG_ENTRY)) {
-                items.add(readEntry(parser));
+                RssItem item = readEntry(parser);
+                if (!isIgnoredTitle(item.getTitle())) {
+                    items.add(item);
+                }
             } else {
                 skip(parser);
             }
         }
 
         return items;
+    }
+
+    private boolean isIgnoredTitle(String title) {
+        Matcher matcher = titleCheckPattern.matcher(title);
+        return matcher.find();
     }
 
     private RssItem readEntry(XmlPullParser parser) throws XmlPullParserException, IOException {

@@ -136,4 +136,30 @@ public class RssItem implements Serializable {
     public String toString() {
         return String.format("id=%s, rssId=%s, title=%s", getId(), getRssId(), getTitle());
     }
+
+    public void updateFrom(RssItem item) {
+        if (null != item) {
+            if (null != item.getRssId()) {
+                setRssId(item.getRssId());
+            }
+            if (null != item.getTitle()) {
+                setTitle(item.getTitle());
+            }
+            if (null != item.getSummary()) {
+                setSummary(item.getSummary());
+            }
+            if (null != item.getLink()) {
+                setLink(item.getLink());
+            }
+            if (null != item.getPublished()) {
+                setPublished(item.getPublished());
+            }
+            if (null != item.getAudioLink()) {
+                setAudioLink(item.getAudioLink());
+            }
+            if (null != item.getLocalAudioLink()) {
+                setLocalAudioLink(item.getLocalAudioLink());
+            }
+        }
+    }
 }

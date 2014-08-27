@@ -13,5 +13,7 @@
     <string name="stop">Stop</string>
     <string name="loading_progress_title">Loading...</string>
     <string name="loading_progress_description">Loading latest episodes from bbc.co.uk</string>
+    <string name="parsing_progress_title">Parsing...</string>
+    <string name="parsing_progress_description">Parsing audio link</string>
 
 </resources>
