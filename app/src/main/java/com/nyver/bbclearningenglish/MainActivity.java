@@ -19,12 +19,13 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.nyver.bbclearningenglish.db.DatabaseHelper;
 import com.nyver.bbclearningenglish.db.DatabaseHelperFactory;
 import com.nyver.bbclearningenglish.db.RssItemDAO;
 import com.nyver.bbclearningenglish.helper.NetHelper;
 import com.nyver.bbclearningenglish.html.HtmlParser;
 import com.nyver.bbclearningenglish.html.exception.HtmlException;
+import com.nyver.bbclearningenglish.html.exception.ParseHtmlException;
+import com.nyver.bbclearningenglish.html.task.ParseAudioLinkFromHtmlTask;
 import com.nyver.bbclearningenglish.rss.RssReader;
 import com.nyver.bbclearningenglish.rss.SixMinuteRssStrategy;
 import com.nyver.bbclearningenglish.rss.adapter.RssItemAdapter;
@@ -37,6 +38,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends ActionBarActivity {
 
@@ -83,34 +85,58 @@ public class MainActivity extends ActionBarActivity {
         }
 
         @Override
+        public void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+
+            setupDatabase();
+        }
+
+        private void setupDatabase() {
+            try {
+                rssItemDAO = DatabaseHelperFactory.getHelper().getRssItemDAO();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                Log.e(TAG, "Error creating or updating a database");
+            }
+        }
+
+        @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
 
+            View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+            return rootView;
+        }
+
+        @Override
+        public void onStart() {
+            super.onStart();
+
+            loadItemsFromDatabase();
+
+            if (items.isEmpty()) {
+                items = loadItemsFromRss();
+                saveItemsToDatabase();
+            }
+
+            ArrayAdapter<RssItem> listAdapter = new RssItemAdapter(getActivity(), R.layout.rss_item, items);
+
+            ListView rssItemsListView = (ListView) getView().findViewById(R.id.rssItemsListView);
+            rssItemsListView.setAdapter(listAdapter);
+            rssItemsListView.setOnItemClickListener(this);
+
+        }
+
+        private void loadItemsFromDatabase() {
             try {
-                rssItemDAO = DatabaseHelperFactory.getHelper().getRssItemDAO();
                 items = rssItemDAO.getAllItems();
             } catch (SQLException e) {
                 e.printStackTrace();
                 Log.e(TAG, "Error retrieving rss items from database");
             }
-
-            View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-
-            if (items.isEmpty()) {
-                items = loadItems();
-                saveItems();
-
-            }
-            ArrayAdapter<RssItem> listAdapter = new RssItemAdapter(getActivity(), R.layout.rss_item, items);
-
-            ListView rssItemsListView = (ListView) rootView.findViewById(R.id.rssItemsListView);
-            rssItemsListView.setAdapter(listAdapter);
-            rssItemsListView.setOnItemClickListener(this);
-
-            return rootView;
         }
 
-        private void saveItems() {
+        private void saveItemsToDatabase() {
             try {
                 for(RssItem item: items) {
                     if (item.getId() > 0) {
@@ -125,7 +151,7 @@ public class MainActivity extends ActionBarActivity {
             }
         }
 
-        private List<RssItem> loadItems() {
+        private List<RssItem> loadItemsFromRss() {
             if (NetHelper.isOnline(getActivity())) {
                 try {
                     return new LoadRssTask(getActivity()).execute(new RssReader(new SixMinuteRssStrategy())).get();
@@ -145,23 +171,27 @@ public class MainActivity extends ActionBarActivity {
             RssItem item = items.get(i);
             if (null != item) {
                 if (null == item.getAudioLink()) {
-                    HtmlParser parser = new HtmlParser(item.getLink());
+                    String audioLink = null;
                     try {
-                        item.setAudioLink(parser.getAudioLink());
-                        rssItemDAO.update(item);
-                    } catch (HtmlException e) {
+                        audioLink = parseAudioLinkFromHtml(item);
+                    } catch (ParseHtmlException e) {
                         e.printStackTrace();
-                        Toast.makeText(getActivity(), String.format(getString(R.string.error_cant_load_or_parse), item.getLink()), Toast.LENGTH_LONG);
                         Log.e(TAG, String.format(getString(R.string.error_cant_load_or_parse), item.getLink()));
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                        Log.e(TAG, "Error save rss item " + item.getTitle());
+                        Toast.makeText(getActivity(), String.format(getString(R.string.error_cant_load_or_parse), item.getLink()), Toast.LENGTH_LONG);
+                    }
+
+                    if (null != audioLink) {
+                        try {
+                            item.setAudioLink(audioLink);
+                            rssItemDAO.update(item);
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                            Log.e(TAG, "Error update rss item " + item.getTitle());
+                        }
                     }
                 }
 
                 if (null != item.getAudioLink() && !item.getAudioLink().isEmpty()) {
-                    Toast.makeText(getActivity(), item.getAudioLink(), Toast.LENGTH_LONG).show();
-
                     Fragment fragment = ItemFragment.newInstance(item);
                     FragmentTransaction transaction = getFragmentManager().beginTransaction();
 
@@ -173,6 +203,20 @@ public class MainActivity extends ActionBarActivity {
                 }
 
             }
+        }
+
+        private String parseAudioLinkFromHtml(RssItem item) throws ParseHtmlException {
+            String audioLink;
+            try {
+                audioLink = new ParseAudioLinkFromHtmlTask(getActivity()).execute(item.getLink()).get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                throw new ParseHtmlException(e);
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+                throw new ParseHtmlException(e);
+            }
+            return audioLink;
         }
     }
 

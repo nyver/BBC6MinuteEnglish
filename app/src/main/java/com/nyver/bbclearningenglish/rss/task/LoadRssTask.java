@@ -1,7 +1,9 @@
 package com.nyver.bbclearningenglish.rss.task;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.os.AsyncTask;
+import android.support.v4.app.Fragment;
 import android.widget.Toast;
 
 import com.nyver.bbclearningenglish.R;
@@ -16,8 +18,16 @@ public class LoadRssTask extends AsyncTask<RssReader, Integer, List<RssItem>> {
 
     private Activity context;
 
+    private ProgressDialog progressDialog;
+
     public LoadRssTask(Activity context) {
         this.context = context;
+    }
+
+    @Override
+    protected void onPreExecute() {
+        progressDialog = ProgressDialog.show(context, context.getString(R.string.loading_progress_title), context.getString(R.string.loading_progress_description), true);
+        super.onPreExecute();
     }
 
     @Override
@@ -36,6 +46,17 @@ public class LoadRssTask extends AsyncTask<RssReader, Integer, List<RssItem>> {
             publishProgress((int) ((i / (float) count) * 100));
         }
         return items;
+    }
+
+    @Override
+    protected void onProgressUpdate(Integer... values) {
+        progressDialog.setProgress(values[0]);
+    }
+
+    @Override
+    protected void onPostExecute(List<RssItem> rssItems) {
+        super.onPostExecute(rssItems);
+        progressDialog.dismiss();
     }
 
     protected void showError(final int message) {

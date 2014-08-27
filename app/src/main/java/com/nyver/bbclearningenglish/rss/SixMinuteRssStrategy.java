@@ -1,5 +1,6 @@
 package com.nyver.bbclearningenglish.rss;
 
+import android.util.Log;
 import android.util.Xml;
 
 import com.nyver.bbclearningenglish.rss.model.RssItem;
@@ -10,23 +11,30 @@ import org.xmlpull.v1.XmlPullParserException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 public class SixMinuteRssStrategy extends AbstractRssStrategy {
 
+    private static final String TAG = SixMinuteRssStrategy.class.getSimpleName();
+
     public static final String URL = "http://www.bbc.co.uk/worldservice/learningenglish/general/sixminute/index.xml";
     private static final String NS = null;
 
     private static final String TAG_FEED = "feed";
     private static final String TAG_ENTRY = "entry";
+    private static final String TAG_ID = "id";
     private static final String TAG_TITLE = "title";
     private static final String TAG_SUMMARY = "summary";
     private static final String TAG_PUBLISHED = "published";
     private static final String TAG_LINK = "link";
+
+    private static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZZZZZ", Locale.ENGLISH);
 
     @Override
     public String getUrlString() {
@@ -69,34 +77,51 @@ public class SixMinuteRssStrategy extends AbstractRssStrategy {
 
     private RssItem readEntry(XmlPullParser parser) throws XmlPullParserException, IOException {
         parser.require(XmlPullParser.START_TAG, NS, TAG_ENTRY);
+        String rssId = null;
         String title = null;
         String summary = null;
         String link = null;
+        Date published = null;
 
         while (parser.next() != XmlPullParser.END_TAG) {
             if (parser.getEventType() != XmlPullParser.START_TAG) {
                 continue;
             }
             String name = parser.getName();
-            if (name.equals(TAG_TITLE)) {
-                title = readTitle(parser);
+            if (name.equals(TAG_ID)) {
+                rssId = readTag(TAG_ID, parser);
+            } else if (name.equals(TAG_TITLE)) {
+                title = readTag(TAG_TITLE, parser);
             } else if (name.equals(TAG_SUMMARY)) {
                 summary = readSummary(parser);
             } else if (name.equals(TAG_LINK)) {
                 link = readLink(parser);
+            } else if (name.equals(TAG_PUBLISHED)) {
+                published = parseDate(readTag(TAG_PUBLISHED, parser));
             } else {
                 skip(parser);
             }
         }
-        return new RssItem(title, summary, link);
+        return new RssItem(rssId, title, summary, link, published);
+    }
+
+    private Date parseDate(String str) {
+        Date date = Calendar.getInstance().getTime();
+        try {
+            date = dateFormat.parse(str);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            Log.e(TAG, "Could not parse date " + str);
+        }
+        return date;
     }
 
     // Processes title tags in the feed.
-    private String readTitle(XmlPullParser parser) throws IOException, XmlPullParserException {
-        parser.require(XmlPullParser.START_TAG, NS, TAG_TITLE);
-        String title = readText(parser);
-        parser.require(XmlPullParser.END_TAG, NS, TAG_TITLE);
-        return title;
+    private String readTag(String tag, XmlPullParser parser) throws IOException, XmlPullParserException {
+        parser.require(XmlPullParser.START_TAG, NS, tag);
+        String content = readText(parser);
+        parser.require(XmlPullParser.END_TAG, NS, tag);
+        return content;
     }
 
     // Processes link tags in the feed.
