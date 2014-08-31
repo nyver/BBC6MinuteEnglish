@@ -10,12 +10,21 @@ import android.widget.TextView;
 import com.nyver.bbclearningenglish.R;
 import com.nyver.bbclearningenglish.rss.model.RssItem;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class RssItemAdapter extends ArrayAdapter<RssItem> {
 
     public RssItemAdapter(Context context, int resource, List<RssItem> objects) {
         super(context, resource, objects);
+
+        Collections.sort(objects, new Comparator<RssItem>() {
+            @Override
+            public int compare(RssItem rssItem, RssItem rssItem2) {
+                return rssItem2.getPublished().compareTo(rssItem.getPublished());
+            }
+        });
     }
 
     @Override

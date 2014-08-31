@@ -26,8 +26,8 @@ public class LoadRssTask extends AsyncTask<RssReader, Integer, List<RssItem>> {
 
     @Override
     protected void onPreExecute() {
-        progressDialog = ProgressDialog.show(context, context.getString(R.string.loading_progress_title), context.getString(R.string.loading_progress_description), true);
         super.onPreExecute();
+        progressDialog = ProgressDialog.show(context, context.getString(R.string.loading_progress_title), context.getString(R.string.loading_progress_description), true);
     }
 
     @Override
@@ -35,6 +35,7 @@ public class LoadRssTask extends AsyncTask<RssReader, Integer, List<RssItem>> {
         List<RssItem> items = new ArrayList<RssItem>();
 
         int count = rssReaders.length;
+        publishProgress(0);
         for (int i = 0; i < count; i++) {
             try {
                 items.addAll(rssReaders[i].load());

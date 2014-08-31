@@ -5,6 +5,9 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -46,6 +49,8 @@ public class MainFragment extends Fragment implements AdapterView.OnItemClickLis
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        setHasOptionsMenu(true);
 
         setupDatabase();
 
@@ -183,5 +188,26 @@ public class MainFragment extends Fragment implements AdapterView.OnItemClickLis
             throw new ParseHtmlException(e);
         }
         return audioLink;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        switch(id) {
+            case R.id.action_refresh:
+                loadItemsFromRss();
+                saveItemsToDatabase();
+                break;
+            case R.id.action_exit:
+                getActivity().finish();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.main, menu);
     }
 }
