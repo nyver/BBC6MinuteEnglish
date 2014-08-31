@@ -13,11 +13,15 @@
     <string name="error_cant_connect_or_load_list">Can not connect to www.bbc.co.uk or load the list of episodes</string>
     <string name="error_cant_load_or_parse">Can not load or parse %s</string>
     <string name="error_couldnt_parse_an_audio_link_for_this_episode">Could not parse an audio link for this episode</string>
+    <string name="error_can_not_create_directory">Can not create directory %s</string>
+    <string name="error_external_storage_is_not_writeable">Storage is not writeable</string>
+    <string name="error_cant_download_file">Can not download file from %s</string>
     <string name="play">Play</string>
     <string name="stop">Stop</string>
     <string name="loading_progress_title">Loading...</string>
     <string name="loading_progress_description">Loading latest episodes from bbc.co.uk</string>
     <string name="parsing_progress_title">Parsing...</string>
     <string name="parsing_progress_description">Parsing audio link</string>
-
+    <string name="downloading_progress_title">Downloading...</string>
+    <string name="downloading_progress_description">Downloading audio file</string>
 </resources>
